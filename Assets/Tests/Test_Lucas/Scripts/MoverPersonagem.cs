@@ -96,13 +96,9 @@ public class MovimentoCorrida : MonoBehaviour
             alvoZ = direita;
     }
 
-    void OnCollisionEnter(Collision collision)
+    void OnTriggerEnter(Collider other)
     {
-        if (collision.contacts[0].normal == Vector3.up)
-        {
-            Debug.Log("Colisão");
-            estaPulando = false;
-        }
+        estaPulando = false;
     }
 
     bool IsGrounded()
