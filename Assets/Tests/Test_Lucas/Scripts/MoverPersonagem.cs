@@ -11,39 +11,76 @@ public class MovimentoCorrida : MonoBehaviour
 
     private int posicaoAtual = 1;
 
-    public float velocidadeX = f;  // velocidade constante no eixo X
+    public float velocidadeX = 5f;  // velocidade constante no eixo X
+
+    public float forcaPulo = 7f;
+    public float alturaOriginal = 2f;
+    public float alturaEscorrega = 1f;
+    public float duracaoEscorrega = 1f;
+
+    private bool estaPulando = false;
+    private bool estaEscorregando = false;
+    private float tempoEscorrega = 0f;
+
+    private Rigidbody rb;
+    private CapsuleCollider col;
 
     void Start()
     {
         alvoZ = meio;
         transform.position = new Vector3(transform.position.x, transform.position.y, alvoZ);
+
+        rb = GetComponent<Rigidbody>();
+        col = GetComponent<CapsuleCollider>();
+        alturaOriginal = col.height;
     }
 
     void Update()
     {
-        // Movimento lateral no Z (A e D)
-        if (Input.GetKeyDown(KeyCode.A))
+        // Movimento lateral (A e D)
+        if (Input.GetKeyDown(KeyCode.A) && posicaoAtual > 0)
         {
-            if (posicaoAtual > 0)
-            {
-                posicaoAtual--;
-                AtualizaAlvo();
-            }
+            posicaoAtual--;
+            AtualizaAlvo();
         }
-        else if (Input.GetKeyDown(KeyCode.D))
+        else if (Input.GetKeyDown(KeyCode.D) && posicaoAtual < 2)
         {
-            if (posicaoAtual < 2)
+            posicaoAtual++;
+            AtualizaAlvo();
+        }
+
+        // Pulo (W)
+        if (Input.GetKeyDown(KeyCode.W) && !estaPulando && IsGrounded())
+        {
+            rb.AddForce(Vector3.up * forcaPulo, ForceMode.Impulse);
+            estaPulando = true;
+        }
+
+        // Escorregar (S)
+        if (Input.GetKeyDown(KeyCode.S) && !estaEscorregando && IsGrounded())
+        {
+            estaEscorregando = true;
+            tempoEscorrega = duracaoEscorrega;
+            col.height = alturaEscorrega;
+            col.center = new Vector3(col.center.x, alturaEscorrega / 2f, col.center.z);
+        }
+
+        if (estaEscorregando)
+        {
+            tempoEscorrega -= Time.deltaTime;
+            if (tempoEscorrega <= 0f)
             {
-                posicaoAtual++;
-                AtualizaAlvo();
+                estaEscorregando = false;
+                col.height = alturaOriginal;
+                col.center = new Vector3(col.center.x, alturaOriginal / 2f, col.center.z);
             }
         }
 
-        // Movimento suave no Z
+        // Movimento lateral suave
         Vector3 pos = transform.position;
         pos.z = Mathf.MoveTowards(pos.z, alvoZ, velocidadeZ * Time.deltaTime);
 
-        // Movimento contínuo no X
+        // Movimento constante no X
         pos.x += velocidadeX * Time.deltaTime;
 
         transform.position = pos;
@@ -57,5 +94,19 @@ public class MovimentoCorrida : MonoBehaviour
             alvoZ = meio;
         else
             alvoZ = direita;
+    }
+
+    void OnCollisionEnter(Collision collision)
+    {
+        if (collision.contacts[0].normal == Vector3.up)
+        {
+            Debug.Log("Colisão");
+            estaPulando = false;
+        }
+    }
+
+    bool IsGrounded()
+    {
+        return Physics.Raycast(transform.position, Vector3.down, 1.4f);
     }
 }
